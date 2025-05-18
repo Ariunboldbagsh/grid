@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Сурагчийн байршил</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+    }
+
+    #form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1em;
+      gap: 10px;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      width: 90%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+
+    #map-container {
+      display: none;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="form">
+    <input type="number" id="grade" placeholder="Анги (ж: 1)">
+    <input type="number" id="number" placeholder="Дугаар (ж: 2)">
+    <button onclick="search()">Хайх</button>
+  </div>
+
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map', {
+      center: [47.909, 106.907],
+      zoom: 22,
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 23
+    }).addTo(map);
+
+    let currentMarker = null, yourPositionMarker = null;
+    let studentTarget = null, notified = false;
+
+    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function search() {
+      const grade = document.getElementById('grade').value.trim();
+      const number = parseInt(document.getElementById('number').value.trim());
+      if (!grade || isNaN(number)) {
+        alert('Анги болон дугаараа оруулна уу.');
+        return;
+      }
+
+      fetch(`data/${grade}.json`)
+        .then(res => {
+          if (!res.ok) throw new Error('Файл олдсонгүй');
+          return res.json();
+        })
+        .then(data => {
+          const student = data.find(s => Number(s.Дугаар) === number);
+          if (!student) {
+            alert('Сурагч олдсонгүй.');
+            return;
+          }
+
+          // Form нууж, газрын зургийг харуулна
+          document.getElementById('form').style.display = 'none';
+          document.getElementById('map-container').style.display = 'block';
+
+          // Газрын зургийн хэмжээ тохируулалт (delay-тай)
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 400);
+
+          // Өмнөх marker устгана
+          if (currentMarker) map.removeLayer(currentMarker);
+
+          currentMarker = L.marker([student.Latitude, student.Longitude]).addTo(map)
+            .bindPopup(`
+              <b>${student.Нэр || 'Нэр байхгүй'}</b><br>
+              Анги: ${student.Анги || '-'}, Дугаар: ${student.Дугаар || '-'}<br>
+              <i>Багш: ${student.Багш || '—'}</i>
+            `).openPopup();
+
+          map.setView([student.Latitude, student.Longitude], 22);
+          studentTarget = student;
+          notified = false;
+
+          if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+              const myLat = pos.coords.latitude;
+              const myLng = pos.coords.longitude;
+
+              if (yourPositionMarker) map.removeLayer(yourPositionMarker);
+
+              yourPositionMarker = L.circleMarker([myLat, myLng], {
+                radius: 6, color: 'red', fillOpacity: 0.8
+              }).addTo(map).bindPopup('Таны байршил');
+
+              if (!notified && studentTarget) {
+                const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
+                if (dist <= 1.5) {
+                  notified = true;
+                  alert('✅ Та зөв байран дээр ирлээ!');
+                  if (navigator.vibrate) navigator.vibrate(300);
+                }
+              }
+            }, err => {
+              console.error("GPS алдаа:", err);
+            }, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0
+            });
+          }
+        })
+        .catch(() => alert('Ангийн файл олдсонгүй.'));
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => map.invalidateSize(), 400);
+    });
+  </script>
+</body>
+</html>
