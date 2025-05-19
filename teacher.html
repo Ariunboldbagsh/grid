@@ -68,6 +68,7 @@
 
   <div id="map-container">
     <div id="map"></div>
+    <button onclick="enableAutoFollow()" style="position: absolute; top: 10px; right: 10px; z-index: 1000; padding: 10px; background-color: #2196F3; color: white; border: none; border-radius: 6px;">🔁 GPS төвлөрөх</button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -86,6 +87,15 @@
 
     let markers = [];
     let teacherMarker = null;
+    let autoFollow = true;
+
+    map.on('dragstart', () => {
+      autoFollow = false;
+    });
+
+    function enableAutoFollow() {
+      autoFollow = true;
+    }
 
     function loadClass() {
       const grade = document.getElementById('grade').value.trim();
@@ -139,6 +149,9 @@
       navigator.geolocation.watchPosition(pos => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
+
+        if (acc > 10) return;
 
         if (teacherMarker) map.removeLayer(teacherMarker);
 
@@ -147,14 +160,18 @@
           color: 'red',
           fillColor: '#f03',
           fillOpacity: 0.9
-        }).addTo(map).bindPopup("📍 Таны байршил").openPopup();
+        }).addTo(map).bindPopup(`📍 Таны байршил<br>🎯 ${acc.toFixed(1)} м`);
+
+        if (autoFollow) {
+          map.setView([lat, lng], 21);
+        }
 
       }, err => {
         console.error("GPS алдаа:", err);
       }, {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 5000
+        timeout: 2000
       });
     }
 
