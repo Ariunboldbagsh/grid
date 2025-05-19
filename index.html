@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="mn">
 <head>
@@ -74,6 +73,11 @@
 
     let currentMarker = null, yourPositionMarker = null;
     let studentTarget = null, notified = false;
+    let autoFollow = true;
+
+    map.on('dragstart', () => {
+      autoFollow = false;
+    });
 
     function getDistanceInMeters(lat1, lon1, lat2, lon2) {
       const R = 6371000;
@@ -122,6 +126,8 @@
           map.setView([student.Latitude, student.Longitude], 22);
           studentTarget = student;
           notified = false;
+
+          trackYourPosition();
         })
         .catch(() => alert('Ангийн файл олдсонгүй.'));
     }
@@ -137,8 +143,7 @@
         const myLng = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
 
-        // ❌ Алдааны хязгаар 0.5 м-ээс их байвал буцаана
-        if (accuracy > 0.5) return;
+        if (accuracy > 10) return;
 
         if (yourPositionMarker) map.removeLayer(yourPositionMarker);
 
@@ -147,7 +152,11 @@
           color: 'blue',
           fillColor: '#00f',
           fillOpacity: 0.8
-        }).addTo(map).bindPopup(`📍 Та энд байна<br>📏 Нарийвчлал: ${accuracy.toFixed(2)} м`).openPopup();
+        }).addTo(map).bindPopup(`📍 Та энд байна<br>🎯 Нарийвчлал: ${accuracy.toFixed(1)} м`);
+
+        if (autoFollow) {
+          map.setView([myLat, myLng], 22);
+        }
 
         if (!notified && studentTarget) {
           const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
@@ -163,13 +172,12 @@
       }, {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 3000 // 🕒 3 секундэд шинэчлэхгүй бол дахин оролдоно
+        timeout: 3000
       });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => map.invalidateSize(), 400);
-      trackYourPosition();
     });
   </script>
 </body>
