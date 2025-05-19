@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="mn">
 <head>
@@ -113,7 +114,7 @@
 
           currentMarker = L.marker([student.Latitude, student.Longitude]).addTo(map)
             .bindPopup(`
-              <b>${student.Нэр || 'Нэр байхгүй'}</b><br>
+              <b>${student.Нэр || 'Нэргүй'}</b><br>
               Анги: ${student.Анги || '-'}, Дугаар: ${student.Дугаар || '-'}<br>
               <i>Багш: ${student.Багш || '—'}</i>
             `).openPopup();
@@ -127,13 +128,17 @@
 
     function trackYourPosition() {
       if (!navigator.geolocation) {
-        console.warn("GPS дэмжихгүй байна.");
+        alert("Таны төхөөрөмж байршил тогтоохгүй байна.");
         return;
       }
 
       navigator.geolocation.watchPosition(pos => {
         const myLat = pos.coords.latitude;
         const myLng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy;
+
+        // ❌ Алдааны хязгаар 0.5 м-ээс их байвал буцаана
+        if (accuracy > 0.5) return;
 
         if (yourPositionMarker) map.removeLayer(yourPositionMarker);
 
@@ -142,7 +147,7 @@
           color: 'blue',
           fillColor: '#00f',
           fillOpacity: 0.8
-        }).addTo(map).bindPopup("📍 Та энд байна").openPopup();
+        }).addTo(map).bindPopup(`📍 Та энд байна<br>📏 Нарийвчлал: ${accuracy.toFixed(2)} м`).openPopup();
 
         if (!notified && studentTarget) {
           const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
@@ -158,7 +163,7 @@
       }, {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000
+        timeout: 3000 // 🕒 3 секундэд шинэчлэхгүй бол дахин оролдоно
       });
     }
 
