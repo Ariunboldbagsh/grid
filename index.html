@@ -12,7 +12,6 @@
       height: 100%;
       font-family: sans-serif;
     }
-
     #form {
       display: flex;
       flex-direction: column;
@@ -21,7 +20,6 @@
       padding: 1em;
       gap: 10px;
     }
-
     input, button {
       padding: 10px;
       font-size: 16px;
@@ -29,7 +27,6 @@
       max-width: 300px;
       box-sizing: border-box;
     }
-
     #map-container {
       display: none;
       position: absolute;
@@ -38,12 +35,10 @@
       height: 100vh;
       z-index: 1;
     }
-
     #map {
       width: 100%;
       height: 100%;
     }
-
     #follow-btn {
       position: absolute;
       top: 10px;
@@ -84,6 +79,9 @@
       subdomains: 'abcd',
       maxZoom: 23
     }).addTo(map);
+
+    // ✅ Массштаб нэмж байна
+    L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
 
     let currentMarker = null, yourPositionMarker = null;
     let studentTarget = null, notified = false;
