@@ -105,16 +105,10 @@
             return;
           }
 
-          // Form нууж, газрын зургийг харуулна
           document.getElementById('form').style.display = 'none';
           document.getElementById('map-container').style.display = 'block';
+          setTimeout(() => map.invalidateSize(), 400);
 
-          // Газрын зургийн хэмжээ тохируулалт (delay-тай)
-          setTimeout(() => {
-            map.invalidateSize();
-          }, 400);
-
-          // Өмнөх marker устгана
           if (currentMarker) map.removeLayer(currentMarker);
 
           currentMarker = L.marker([student.Latitude, student.Longitude]).addTo(map)
@@ -127,40 +121,50 @@
           map.setView([student.Latitude, student.Longitude], 22);
           studentTarget = student;
           notified = false;
-
-          if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(pos => {
-              const myLat = pos.coords.latitude;
-              const myLng = pos.coords.longitude;
-
-              if (yourPositionMarker) map.removeLayer(yourPositionMarker);
-
-              yourPositionMarker = L.circleMarker([myLat, myLng], {
-                radius: 6, color: 'red', fillOpacity: 0.8
-              }).addTo(map).bindPopup('Таны байршил');
-
-              if (!notified && studentTarget) {
-                const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
-                if (dist <= 1.5) {
-                  notified = true;
-                  alert('✅ Та зөв байран дээр ирлээ!');
-                  if (navigator.vibrate) navigator.vibrate(300);
-                }
-              }
-            }, err => {
-              console.error("GPS алдаа:", err);
-            }, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0
-            });
-          }
         })
         .catch(() => alert('Ангийн файл олдсонгүй.'));
     }
 
+    function trackYourPosition() {
+      if (!navigator.geolocation) {
+        console.warn("GPS дэмжихгүй байна.");
+        return;
+      }
+
+      navigator.geolocation.watchPosition(pos => {
+        const myLat = pos.coords.latitude;
+        const myLng = pos.coords.longitude;
+
+        if (yourPositionMarker) map.removeLayer(yourPositionMarker);
+
+        yourPositionMarker = L.circleMarker([myLat, myLng], {
+          radius: 6,
+          color: 'blue',
+          fillColor: '#00f',
+          fillOpacity: 0.8
+        }).addTo(map).bindPopup("📍 Та энд байна").openPopup();
+
+        if (!notified && studentTarget) {
+          const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
+          if (dist <= 0.5) {
+            notified = true;
+            alert('✅ Та зөв байран дээр ирлээ!');
+            if (navigator.vibrate) navigator.vibrate(300);
+          }
+        }
+
+      }, err => {
+        console.error("GPS алдаа:", err);
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => map.invalidateSize(), 400);
+      trackYourPosition();
     });
   </script>
 </body>
