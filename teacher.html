@@ -3,13 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Багшийн байршил</title>
+  <title>Багшийн ангийн байршил</title>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-    #form { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5em; gap: 12px; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+    }
+    #form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5em;
+      gap: 12px;
+    }
     input, button {
-      padding: 12px;
-      font-size: 1rem;
+      padding: 10px;
+      font-size: 16px;
       width: 90%;
       max-width: 300px;
       border-radius: 8px;
@@ -31,142 +43,142 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 5;
-      padding: 10px;
-      background-color: #2196F3;
+      z-index: 999;
+      background: #2196F3;
       color: white;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 5px;
+      font-size: 14px;
+      padding: 6px 10px;
     }
   </style>
 </head>
 <body>
 
-  <div id="form">
-    <input type="number" id="grade" placeholder="Анги (ж: 2)">
-    <button onclick="loadClass()">Ангийн байршил харах</button>
-  </div>
+<div id="form">
+  <input type="number" id="grade" placeholder="Анги (ж: 1)">
+  <button onclick="loadClass()">Ангийн байршил харах</button>
+</div>
 
-  <div id="map"></div>
-  <button id="follow-btn" onclick="enableFollow()" style="display:none;">🔁 GPS төвлөрөх</button>
+<div id="map"></div>
+<button id="follow-btn" onclick="enableFollow()" style="display:none;">🔁 GPS төвлөрөх</button>
 
-  <script>
-    let map;
-    let teacherMarker = null;
-    let studentMarkers = [];
-    let autoFollow = true;
+<script>
+  let map;
+  let teacherMarker = null;
+  let studentMarkers = [];
+  let autoFollow = true;
 
-    function initMap() {
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 47.909, lng: 106.907 },
-        zoom: 20,
-        mapTypeId: 'satellite'
-      });
+  function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat: 47.909, lng: 106.907 },
+      zoom: 21,
+      mapTypeId: 'satellite',
+    });
 
-      map.addListener("dragstart", () => autoFollow = false);
+    map.addListener("dragstart", () => autoFollow = false);
+  }
+
+  function enableFollow() {
+    autoFollow = true;
+  }
+
+  function loadClass() {
+    const grade = document.getElementById('grade').value.trim();
+    if (!grade) {
+      alert("Ангиа оруулна уу.");
+      return;
     }
 
-    function enableFollow() {
-      autoFollow = true;
-    }
-
-    function loadClass() {
-      const grade = document.getElementById('grade').value.trim();
-      if (!grade) {
-        alert("Ангиа оруулна уу.");
-        return;
-      }
-
-      fetch(`data/${grade}.json`)
-        .then(res => res.json())
-        .then(students => {
-          if (!Array.isArray(students)) {
-            alert("Формат алдаатай.");
-            return;
-          }
-
-          document.getElementById("form").style.display = "none";
-          document.getElementById("map").style.display = "block";
-          document.getElementById("follow-btn").style.display = "block";
-
-          studentMarkers.forEach(m => m.setMap(null));
-          studentMarkers = [];
-
-          let latSum = 0, lngSum = 0, count = 0;
-          students.forEach(s => {
-            if (s.Latitude && s.Longitude) {
-              const pos = { lat: parseFloat(s.Latitude), lng: parseFloat(s.Longitude) };
-              const marker = new google.maps.Marker({
-                position: pos,
-                map,
-                title: `Дугаар: ${s.Дугаар || ''}`,
-              });
-              const info = new google.maps.InfoWindow({
-                content: `<b>${s.Нэр || 'Нэргүй'}</b><br>Дугаар: ${s.Дугаар || '-'}<br><i>Багш: ${s.Багш || '-'}</i>`
-              });
-              marker.addListener('click', () => info.open(map, marker));
-              studentMarkers.push(marker);
-              latSum += pos.lat;
-              lngSum += pos.lng;
-              count++;
-            }
-          });
-
-          if (count > 0) {
-            map.setCenter({ lat: latSum / count, lng: lngSum / count });
-          }
-
-          trackTeacher();
-        })
-        .catch(err => {
-          console.error(err);
-          alert("Файл олдсонгүй.");
-        });
-    }
-
-    function trackTeacher() {
-      if (!navigator.geolocation) {
-        alert("GPS дэмжихгүй байна.");
-        return;
-      }
-
-      navigator.geolocation.watchPosition(pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const acc = pos.coords.accuracy;
-
-        if (teacherMarker) teacherMarker.setMap(null);
-
-        teacherMarker = new google.maps.Circle({
-          strokeColor: "#f03",
-          strokeOpacity: 1,
-          strokeWeight: 1,
-          fillColor: "#f03",
-          fillOpacity: 0.8,
-          map,
-          center: { lat, lng },
-          radius: 0.5  // ✅ 0.5 метр
-        });
-
-        if (autoFollow) {
-          map.setCenter({ lat, lng });
-          map.setZoom(23); // 🔍 Хамгийн ойр түвшин
+    fetch(`data/${grade}.json`)
+      .then(res => res.json())
+      .then(students => {
+        if (!Array.isArray(students)) {
+          alert("Формат алдаатай.");
+          return;
         }
 
-      }, err => {
-        console.error("GPS алдаа:", err);
-      }, {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 2000
-      });
-    }
-  </script>
+        document.getElementById("form").style.display = "none";
+        document.getElementById("map").style.display = "block";
+        document.getElementById("follow-btn").style.display = "block";
 
-  <!-- ✅ Google Maps API ашиглана -->
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
-  </script>
+        studentMarkers.forEach(m => m.setMap(null));
+        studentMarkers = [];
+
+        let latSum = 0, lngSum = 0, count = 0;
+        students.forEach(s => {
+          if (s.Latitude && s.Longitude) {
+            const pos = { lat: parseFloat(s.Latitude), lng: parseFloat(s.Longitude) };
+            const marker = new google.maps.Marker({
+              position: pos,
+              map,
+              title: `Дугаар: ${s.Дугаар || ''}`,
+            });
+            const info = new google.maps.InfoWindow({
+              content: `<b>${s.Нэр || 'Нэргүй'}</b><br>Дугаар: ${s.Дугаар || '-'}<br><i>Багш: ${s.Багш || '-'}</i>`,
+            });
+            marker.addListener('click', () => info.open(map, marker));
+            studentMarkers.push(marker);
+            latSum += pos.lat;
+            lngSum += pos.lng;
+            count++;
+          }
+        });
+
+        if (count > 0) {
+          map.setCenter({ lat: latSum / count, lng: lngSum / count });
+        }
+
+        trackTeacher();
+      })
+      .catch(() => alert("Файл олдсонгүй."));
+  }
+
+  function trackTeacher() {
+    if (!navigator.geolocation) {
+      alert("GPS дэмжихгүй байна.");
+      return;
+    }
+
+    navigator.geolocation.watchPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+
+      if (teacherMarker) teacherMarker.setMap(null);
+
+      teacherMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#FF0000',
+          fillOpacity: 0.9,
+          strokeColor: '#fff',
+          strokeWeight: 1,
+        },
+        title: `📍 Таны байршил (${acc.toFixed(1)} м нарийвчлал)`
+      });
+
+      if (autoFollow) {
+        map.setCenter({ lat, lng });
+      }
+
+    }, err => {
+      console.error("GPS алдаа:", err);
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 1500
+    });
+  }
+</script>
+
+<!-- ✅ GOOGLE MAPS API KEY -->
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
+</script>
+
 </body>
 </html>
