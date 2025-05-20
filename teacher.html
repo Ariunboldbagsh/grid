@@ -49,6 +49,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      display: none;
     }
   </style>
 </head>
@@ -60,7 +61,7 @@
   </div>
 
   <div id="map"></div>
-  <button id="follow-btn" onclick="enableFollow()" style="display:none;">🔁 GPS төвлөрөх</button>
+  <button id="follow-btn" onclick="enableFollow()">🔁 GPS төвлөрөх</button>
 
   <script>
     let map;
@@ -72,7 +73,7 @@
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 47.909, lng: 106.907 },
         zoom: 21,
-        mapTypeId: 'satellite' // илүү өндөр нарийвчлалтай харагдуулна
+        mapTypeId: 'roadmap',
       });
 
       map.addListener("dragstart", () => autoFollow = false);
@@ -147,27 +148,26 @@
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
 
-        if (acc > 20) return;
+        if (acc > 10) return;
 
-        const location = { lat, lng };
+        if (teacherMarker) teacherMarker.setMap(null);
 
-        if (!teacherMarker) {
-          teacherMarker = new google.maps.Circle({
-            strokeColor: "#f03",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
+        teacherMarker = new google.maps.Marker({
+          position: { lat, lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 6,
             fillColor: "#f03",
-            fillOpacity: 0.6,
-            map,
-            center: location,
-            radius: 5,
-          });
-        } else {
-          teacherMarker.setCenter(location);
-        }
+            fillOpacity: 0.9,
+            strokeColor: "#f03",
+            strokeWeight: 2
+          },
+          title: `Багш: ${acc.toFixed(1)} м`
+        });
 
         if (autoFollow) {
-          map.setCenter(location);
+          map.setCenter({ lat, lng });
         }
 
       }, err => {
@@ -180,7 +180,7 @@
     }
   </script>
 
-  <!-- ✅ Google Maps API түлхүүрээ энд байрлуулсан -->
+  <!-- ✅ Google Maps API key -->
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
   </script>
