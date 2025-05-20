@@ -71,8 +71,8 @@
     function initMap() {
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 47.909, lng: 106.907 },
-        zoom: 20,
-        mapTypeId: 'roadmap',
+        zoom: 21,
+        mapTypeId: 'satellite' // илүү өндөр нарийвчлалтай харагдуулна
       });
 
       map.addListener("dragstart", () => autoFollow = false);
@@ -147,23 +147,27 @@
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
 
-        if (acc > 10) return;
+        if (acc > 20) return;
 
-        if (teacherMarker) teacherMarker.setMap(null);
+        const location = { lat, lng };
 
-        teacherMarker = new google.maps.Circle({
-          strokeColor: "#f03",
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          fillColor: "#f03",
-          fillOpacity: 0.6,
-          map,
-          center: { lat, lng },
-          radius: 5,
-        });
+        if (!teacherMarker) {
+          teacherMarker = new google.maps.Circle({
+            strokeColor: "#f03",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: "#f03",
+            fillOpacity: 0.6,
+            map,
+            center: location,
+            radius: 5,
+          });
+        } else {
+          teacherMarker.setCenter(location);
+        }
 
         if (autoFollow) {
-          map.setCenter({ lat, lng });
+          map.setCenter(location);
         }
 
       }, err => {
@@ -176,7 +180,7 @@
     }
   </script>
 
-  <!-- ✅ Google Maps API (with YOUR KEY) -->
+  <!-- ✅ Google Maps API түлхүүрээ энд байрлуулсан -->
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
   </script>
