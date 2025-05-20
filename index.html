@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сурагчийн байршил</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html, body {
       margin: 0;
@@ -43,12 +42,12 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 999;
+      z-index: 1000;
       background: #4CAF50;
       color: white;
       border: none;
       padding: 8px 12px;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
     }
   </style>
@@ -62,34 +61,17 @@
   </div>
 
   <div id="map-container">
-    <button id="follow-btn" onclick="enableAutoFollow()">🔁 Дагах</button>
+    <button id="follow-btn" onclick="enableAutoFollow()">🔁 GPS төвлөрөх</button>
     <div id="map"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map', {
-      center: [47.909, 106.907],
-      zoom: 22,
-      zoomControl: true
-    });
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap & CartoDB',
-      subdomains: 'abcd',
-      maxZoom: 23
-    }).addTo(map);
-
-    // ✅ Массштаб нэмж байна
-    L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
-
-    let currentMarker = null, yourPositionMarker = null;
-    let studentTarget = null, notified = false;
+    let map;
+    let currentMarker = null;
+    let yourPositionMarker = null;
+    let studentTarget = null;
+    let notified = false;
     let autoFollow = true;
-
-    map.on('dragstart', () => {
-      autoFollow = false;
-    });
 
     function enableAutoFollow() {
       autoFollow = true;
@@ -104,6 +86,17 @@
       const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 47.909, lng: 106.907 },
+        zoom: 20
+      });
+
+      map.addListener("dragstart", () => {
+        autoFollow = false;
+      });
     }
 
     function search() {
@@ -128,18 +121,22 @@
 
           document.getElementById('form').style.display = 'none';
           document.getElementById('map-container').style.display = 'block';
-          setTimeout(() => map.invalidateSize(), 400);
+          google.maps.event.trigger(map, 'resize');
 
-          if (currentMarker) map.removeLayer(currentMarker);
+          if (currentMarker) currentMarker.setMap(null);
 
-          currentMarker = L.marker([student.Latitude, student.Longitude]).addTo(map)
-            .bindPopup(`
-              <b>${student.Нэр || 'Нэргүй'}</b><br>
-              Анги: ${student.Анги || '-'}, Дугаар: ${student.Дугаар || '-'}<br>
-              <i>Багш: ${student.Багш || '—'}</i>
-            `).openPopup();
+          currentMarker = new google.maps.Marker({
+            position: { lat: parseFloat(student.Latitude), lng: parseFloat(student.Longitude) },
+            map,
+            title: student.Нэр || 'Нэргүй'
+          });
 
-          map.setView([student.Latitude, student.Longitude], 22);
+          const info = new google.maps.InfoWindow({
+            content: `<b>${student.Нэр || 'Нэргүй'}</b><br>Анги: ${student.Анги}<br>Дугаар: ${student.Дугаар}<br><i>Багш: ${student.Багш || '—'}</i>`
+          });
+          info.open(map, currentMarker);
+
+          map.setCenter(currentMarker.getPosition());
           studentTarget = student;
           notified = false;
 
@@ -150,39 +147,42 @@
 
     function trackYourPosition() {
       if (!navigator.geolocation) {
-        alert("Таны төхөөрөмж байршил тогтоохгүй байна.");
+        alert("GPS ажиллахгүй байна.");
         return;
       }
 
       navigator.geolocation.watchPosition(pos => {
         const myLat = pos.coords.latitude;
         const myLng = pos.coords.longitude;
-        const accuracy = pos.coords.accuracy;
+        const acc = pos.coords.accuracy;
 
-        if (accuracy > 10) return;
+        if (acc > 10) return;
 
-        if (yourPositionMarker) map.removeLayer(yourPositionMarker);
+        if (yourPositionMarker) yourPositionMarker.setMap(null);
 
-        yourPositionMarker = L.circleMarker([myLat, myLng], {
-          radius: 6,
-          color: 'blue',
-          fillColor: '#00f',
-          fillOpacity: 0.8
-        }).addTo(map).bindPopup(`📍 Та энд байна<br>🎯 Нарийвчлал: ${accuracy.toFixed(1)} м`);
+        yourPositionMarker = new google.maps.Circle({
+          strokeColor: '#0000ff',
+          strokeOpacity: 0.8,
+          strokeWeight: 1,
+          fillColor: '#0000ff',
+          fillOpacity: 0.35,
+          map,
+          center: { lat: myLat, lng: myLng },
+          radius: 2
+        });
 
         if (autoFollow) {
-          map.setView([myLat, myLng], 22);
+          map.setCenter({ lat: myLat, lng: myLng });
         }
 
         if (!notified && studentTarget) {
           const dist = getDistanceInMeters(myLat, myLng, studentTarget.Latitude, studentTarget.Longitude);
           if (dist <= 0.5) {
             notified = true;
-            alert('✅ Та зөв байран дээр ирлээ!');
+            alert("✅ Та зөв байран дээр ирлээ!");
             if (navigator.vibrate) navigator.vibrate(300);
           }
         }
-
       }, err => {
         console.error("GPS алдаа:", err);
       }, {
@@ -191,10 +191,12 @@
         timeout: 1000
       });
     }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      setTimeout(() => map.invalidateSize(), 400);
-    });
   </script>
+
+  <!-- 🔑 Google Maps API Key энд оруулна уу -->
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
+  </script>
+
 </body>
 </html>
