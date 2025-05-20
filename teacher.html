@@ -3,22 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Багшийн ангийн байршил</title>
+  <title>Багшийн байршил</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: sans-serif;
-    }
-    #form {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5em;
-      gap: 12px;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #form { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5em; gap: 12px; }
     input, button {
       padding: 12px;
       font-size: 1rem;
@@ -26,12 +14,13 @@
       max-width: 300px;
       border-radius: 8px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
     button {
       background-color: #4CAF50;
       color: white;
-      cursor: pointer;
       border: none;
+      cursor: pointer;
     }
     #map {
       width: 100vw;
@@ -43,13 +32,12 @@
       top: 10px;
       right: 10px;
       z-index: 5;
-      padding: 8px 12px;
-      background: #2196F3;
+      padding: 10px;
+      background-color: #2196F3;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
-      display: none;
     }
   </style>
 </head>
@@ -61,7 +49,7 @@
   </div>
 
   <div id="map"></div>
-  <button id="follow-btn" onclick="enableFollow()">🔁 GPS төвлөрөх</button>
+  <button id="follow-btn" onclick="enableFollow()" style="display:none;">🔁 GPS төвлөрөх</button>
 
   <script>
     let map;
@@ -72,8 +60,8 @@
     function initMap() {
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 47.909, lng: 106.907 },
-        zoom: 21,
-        mapTypeId: 'roadmap',
+        zoom: 20,
+        mapTypeId: 'satellite'
       });
 
       map.addListener("dragstart", () => autoFollow = false);
@@ -115,7 +103,7 @@
                 title: `Дугаар: ${s.Дугаар || ''}`,
               });
               const info = new google.maps.InfoWindow({
-                content: `<b>${s.Нэр || 'Нэргүй'}</b><br>Дугаар: ${s.Дугаар || '-'}<br><i>Багш: ${s.Багш || '-'}</i>`,
+                content: `<b>${s.Нэр || 'Нэргүй'}</b><br>Дугаар: ${s.Дугаар || '-'}<br><i>Багш: ${s.Багш || '-'}</i>`
               });
               marker.addListener('click', () => info.open(map, marker));
               studentMarkers.push(marker);
@@ -148,26 +136,22 @@
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
 
-        if (acc > 10) return;
-
         if (teacherMarker) teacherMarker.setMap(null);
 
-        teacherMarker = new google.maps.Marker({
-          position: { lat, lng },
+        teacherMarker = new google.maps.Circle({
+          strokeColor: "#f03",
+          strokeOpacity: 1,
+          strokeWeight: 1,
+          fillColor: "#f03",
+          fillOpacity: 0.8,
           map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 6,
-            fillColor: "#f03",
-            fillOpacity: 0.9,
-            strokeColor: "#f03",
-            strokeWeight: 2
-          },
-          title: `Багш: ${acc.toFixed(1)} м`
+          center: { lat, lng },
+          radius: 0.5  // ✅ 0.5 метр
         });
 
         if (autoFollow) {
           map.setCenter({ lat, lng });
+          map.setZoom(23); // 🔍 Хамгийн ойр түвшин
         }
 
       }, err => {
@@ -175,12 +159,12 @@
       }, {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 2000,
+        timeout: 2000
       });
     }
   </script>
 
-  <!-- ✅ Google Maps API key -->
+  <!-- ✅ Google Maps API ашиглана -->
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCKsU91WwiYtAa3PRIU5-0UuaVBZjoInI&callback=initMap">
   </script>
